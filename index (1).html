@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Colombo Wi-Fi Dead Zone Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:#0d1117; color:#e6edf3; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+    /* HEADER */
+    header {
+      background:linear-gradient(90deg,#0d1117,#161b22);
+      border-bottom:1px solid #21262d;
+      padding:10px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+      flex-shrink:0; z-index:1000;
+    }
+    .hdr-left { display:flex; align-items:center; gap:12px; }
+    .wifi-icon {
+      width:36px; height:36px;
+      background:linear-gradient(135deg,#f97316,#ef4444);
+      border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px;
+    }
+    header h1 { font-size:15px; font-weight:700; color:#f0f6fc; }
+    header p  { font-size:11px; color:#7d8590; margin-top:1px; }
+    .hdr-stats { display:flex; gap:10px; }
+    .stat-pill {
+      background:#21262d; border:1px solid #30363d; border-radius:20px;
+      padding:4px 12px; font-size:11px; color:#8b949e;
+      display:flex; align-items:center; gap:6px;
+    }
+    .stat-pill span { color:#f0f6fc; font-weight:600; }
+    .dot { width:8px; height:8px; border-radius:50%; }
+    .dot-green  { background:#3fb950; }
+    .dot-red    { background:#f97316; }
+
+    /* LAYOUT */
+    .main { display:flex; flex:1; overflow:hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width:280px; background:#161b22; border-right:1px solid #21262d;
+      display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;
+    }
+    .sb-section { padding:14px; border-bottom:1px solid #21262d; }
+    .sb-section h3 { font-size:10px; font-weight:600; color:#7d8590; text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; }
+
+    /* Layer toggles */
+    .layer-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 10px; border-radius:8px; margin-bottom:6px;
+      background:#0d1117; border:1px solid #21262d; cursor:pointer;
+    }
+    .layer-left { display:flex; align-items:center; gap:8px; }
+    .layer-color { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+    .layer-name  { font-size:13px; color:#e6edf3; }
+    .layer-sub   { font-size:11px; color:#7d8590; }
+
+    /* Toggle switch */
+    .toggle { position:relative; width:34px; height:19px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#30363d; border-radius:20px; cursor:pointer; transition:.3s; }
+    .slider:before { content:""; position:absolute; width:13px; height:13px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.3s; }
+    input:checked+.slider { background:#388bfd; }
+    input:checked+.slider:before { transform:translateX(15px); }
+
+    /* Legend */
+    .legend-item { display:flex; align-items:center; gap:8px; margin-bottom:7px; font-size:12px; color:#8b949e; }
+    .l-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .l-box { width:16px; height:10px; border-radius:3px; flex-shrink:0; opacity:.6; }
+
+    /* Report button */
+    .report-btn {
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      width:100%; padding:11px; background:linear-gradient(135deg,#f97316,#ef4444);
+      color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:600;
+      cursor:pointer; text-decoration:none; margin-bottom:10px; transition:opacity .2s;
+    }
+    .report-btn:hover { opacity:.85; }
+    .info-box { background:#0d1117; border:1px solid #21262d; border-radius:8px; padding:10px; font-size:11px; color:#7d8590; line-height:1.6; }
+
+    /* Report cards */
+    .report-card { background:#0d1117; border:1px solid #21262d; border-radius:8px; padding:10px; margin-bottom:7px; }
+    .rc-loc  { font-size:13px; font-weight:600; color:#e6edf3; }
+    .rc-area { font-size:11px; color:#388bfd; margin:2px 0; }
+    .rc-issue{ font-size:11px; color:#f97316; }
+    .rc-desc { font-size:11px; color:#7d8590; margin-top:3px; }
+    .no-rep  { font-size:12px; color:#7d8590; text-align:center; padding:14px 0; }
+
+    /* MAP */
+    #map { flex:1; }
+
+    /* Popup */
+    .custom-popup .leaflet-popup-content-wrapper {
+      background:#161b22; border:1px solid #30363d; border-radius:10px;
+      color:#e6edf3; box-shadow:0 8px 32px rgba(0,0,0,.5);
+    }
+    .custom-popup .leaflet-popup-tip { background:#161b22; }
+    .custom-popup .leaflet-popup-content { margin:14px 16px; min-width:190px; }
+    .p-title { font-size:14px; font-weight:700; color:#f0f6fc; margin-bottom:6px; }
+    .p-badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:600; margin-bottom:7px; }
+    .b-hot  { background:#1f6feb33; color:#58a6ff; }
+    .b-rep  { background:#f9731620; color:#f97316; }
+    .p-row  { font-size:12px; color:#8b949e; margin-bottom:3px; }
+    .p-row strong { color:#e6edf3; }
+
+    /* Leaflet overrides */
+    .leaflet-control-zoom a { background:#161b22!important; color:#e6edf3!important; border-color:#30363d!important; }
+    .leaflet-control-attribution { background:rgba(13,17,23,.8)!important; color:#7d8590!important; }
+    .leaflet-control-attribution a { color:#388bfd!important; }
+
+    /* Loading */
+    #loading {
+      position:fixed; inset:0; background:#0d1117;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:9999; transition:opacity .5s;
+    }
+    #loading.hidden { opacity:0; pointer-events:none; }
+    .ring {
+      width:48px; height:48px; border:4px solid #21262d; border-top-color:#f97316;
+      border-radius:50%; animation:spin .8s linear infinite; margin-bottom:16px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #loading p { font-size:14px; color:#7d8590; }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="ring"></div>
+  <p>Loading Wi-Fi Dead Zone Map…</p>
+</div>
+
+<header>
+  <div class="hdr-left">
+    <div class="wifi-icon">📡</div>
+    <div>
+      <h1>Colombo Wi-Fi Dead Zone Map</h1>
+      <p>Public Digital Connectivity Mapping — Colombo Metropolitan Area</p>
+    </div>
+  </div>
+  <div class="hdr-stats">
+    <div class="stat-pill"><div class="dot dot-green"></div>Hotspots: <span id="cnt-hot">–</span></div>
+    <div class="stat-pill"><div class="dot dot-red"></div>Reports: <span id="cnt-rep">–</span></div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+
+    <!-- Layers -->
+    <div class="sb-section">
+      <h3>Map Layers</h3>
+      <div class="layer-item">
+        <div class="layer-left">
+          <div class="layer-color" style="background:#3fb950"></div>
+          <div><div class="layer-name">Wi-Fi Hotspots</div><div class="layer-sub" id="sub-hot">Known access points</div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="tog-hot" checked onchange="toggleLayer('hotspots')"><span class="slider"></span></label>
+      </div>
+      <div class="layer-item">
+        <div class="layer-left">
+          <div class="layer-color" style="background:#388bfd;opacity:.6"></div>
+          <div><div class="layer-name">Coverage Zones</div><div class="layer-sub">500 m buffer</div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="tog-cov" checked onchange="toggleLayer('coverage')"><span class="slider"></span></label>
+      </div>
+      <div class="layer-item">
+        <div class="layer-left">
+          <div class="layer-color" style="background:#f97316"></div>
+          <div><div class="layer-name">Public Reports</div><div class="layer-sub" id="sub-rep">Crowd-sourced</div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="tog-rep" checked onchange="toggleLayer('reports')"><span class="slider"></span></label>
+      </div>
+      <div class="layer-item">
+        <div class="layer-left">
+          <div class="layer-color" style="background:#f0f6fc;opacity:.3"></div>
+          <div><div class="layer-name">Colombo Boundary</div><div class="layer-sub">District outline</div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="tog-bnd" checked onchange="toggleLayer('boundary')"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="sb-section">
+      <h3>Legend</h3>
+      <div class="legend-item"><div class="l-dot" style="background:#3fb950"></div> Wi-Fi Hotspot (verified)</div>
+      <div class="legend-item"><div class="l-dot" style="background:#f97316"></div> Public Reported Dead Zone</div>
+      <div class="legend-item"><div class="l-box" style="background:#388bfd"></div> Coverage Area (500 m)</div>
+      <div class="legend-item"><div class="l-box" style="background:#f0f6fc;border:1px solid #30363d"></div> Colombo Boundary</div>
+    </div>
+
+    <!-- Report button -->
+    <div class="sb-section">
+      <h3>Report a Dead Zone</h3>
+      <a class="report-btn" id="form-btn" href="#" target="_blank">📍 Report a Dead Zone</a>
+      <div class="info-box">Found an area with no Wi-Fi? Submit a report — it appears on this map to help urban planners identify connectivity gaps in Colombo.</div>
+    </div>
+
+    <!-- Live reports list -->
+    <div class="sb-section">
+      <h3>Latest Public Reports</h3>
+      <div id="rep-list"><div class="no-rep">Loading reports…</div></div>
+    </div>
+
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<script>
+
+var SHEET_CSV  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQrX1AOJNnbq1nMGd9y8XQFyW7vC-BQoBPv0DrPne3SJKl6xxDHfvJ0_sx1zqJbA5C4xfrETasdWlu/pub?gid=2107756450&single=true&output=csv";
+var FORM_LINK  = "https://docs.google.com/forms/d/e/1FAIpQLScajOreT8F0tgvLDQSaNCJ0W3BlgIF1ZYsRCnedCAVCrgbCuA/viewform?usp=sharing&ouid=109155876947725600892"; 
+
+document.getElementById('form-btn').href = FORM_LINK;
+
+// ══════════════════════════════════════════
+//  MAP SETUP
+// ══════════════════════════════════════════
+var map = L.map('map', { center:[6.9271,79.8612], zoom:12 });
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; OpenStreetMap &copy; CARTO',
+  subdomains:'abcd', maxZoom:19
+}).addTo(map);
+
+var layers = { hotspots:null, coverage:null, reports:null, boundary:null };
+
+// ══════════════════════════════════════════
+//  ICONS
+// ══════════════════════════════════════════
+function makeIcon(color, emoji){
+  return L.divIcon({
+    html:'<div style="background:'+color+';width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)"><span style="transform:rotate(45deg);font-size:13px">'+emoji+'</span></div>',
+    className:'', iconSize:[28,28], iconAnchor:[14,28], popupAnchor:[0,-30]
+  });
+}
+var iconHot = makeIcon('#3fb950','📶');
+var iconRep = makeIcon('#f97316','⚠️');
+
+// ══════════════════════════════════════════
+//  HOTSPOT DATA
+// ══════════════════════════════════════════
+var hotspotData = [
+  {name:"University of Moratuwa",        address:"Katubedda, Moratuwa",          lat:6.7953, lon:79.9009, type:"University WiFi"},
+  {name:"SLIIT Malabe Campus",           address:"New Kandy Rd, Malabe",         lat:6.9147, lon:79.9729, type:"University WiFi"},
+  {name:"University of Colombo",         address:"Cumaratunga Munidasa Mw",      lat:6.9020, lon:79.8614, type:"University WiFi"},
+  {name:"Colombo Public Library",        address:"Viharamahadevi Park, Col 7",   lat:6.9102, lon:79.8647, type:"Public WiFi"},
+  {name:"Fort Railway Station",          address:"Fort, Colombo 01",             lat:6.9344, lon:79.8507, type:"Public WiFi"},
+  {name:"National Museum Colombo",       address:"Sir Marcus Fernando Mawatha",  lat:6.9102, lon:79.8615, type:"Public WiFi"},
+  {name:"Galle Face Green",             address:"Galle Rd, Colombo 03",         lat:6.8934, lon:79.8479, type:"Public WiFi"},
+  {name:"Viharamahadevi Park",          address:"Colombo 07",                   lat:6.9125, lon:79.8634, type:"Public WiFi"},
+  {name:"Dialog Axiata HQ",            address:"Colombo 03",                   lat:6.8961, lon:79.8551, type:"Telco Hotspot"},
+  {name:"SLT Mobitel Headquarters",    address:"Lotus Rd, Colombo 01",         lat:6.9341, lon:79.8468, type:"Telco Hotspot"},
+  {name:"One Galle Face Mall",         address:"Colombo 02",                   lat:6.8972, lon:79.8466, type:"Mall WiFi"},
+  {name:"Majestic City",               address:"Bambalapitiya, Colombo 04",    lat:6.8836, lon:79.8534, type:"Mall WiFi"},
+  {name:"Liberty Plaza",               address:"R A De Mel Mw, Colombo 03",    lat:6.8966, lon:79.8558, type:"Mall WiFi"},
+  {name:"Colombo City Centre Mall",    address:"Colombo 02",                   lat:6.9178, lon:79.8501, type:"Mall WiFi"},
+  {name:"Crescat Boulevard",           address:"Galle Rd, Colombo 03",         lat:6.8940, lon:79.8502, type:"Mall WiFi"},
+  {name:"Bandaranaike Int'l Airport",  address:"Katunayake",                   lat:7.1808, lon:79.8842, type:"Airport WiFi"},
+  {name:"Dehiwala Railway Station",    address:"Dehiwala",                     lat:6.8519, lon:79.8656, type:"Public WiFi"},
+  {name:"Mount Lavinia Hotel Area",    address:"Mount Lavinia",                lat:6.8310, lon:79.8659, type:"Hotel WiFi"},
+  {name:"Nugegoda Junction",           address:"Nugegoda",                     lat:6.8726, lon:79.8893, type:"Public WiFi"},
+  {name:"Maharagama Town Center",      address:"Maharagama",                   lat:6.8480, lon:79.9258, type:"Public WiFi"},
+  {name:"Kaduwela Town Center",        address:"Kaduwela",                     lat:6.9365, lon:79.9798, type:"Public WiFi"},
+  {name:"Battaramulla Junction",       address:"Battaramulla",                 lat:6.9018, lon:79.9187, type:"Public WiFi"},
+  {name:"Rajagiriya Town",             address:"Rajagiriya",                   lat:6.9107, lon:79.8999, type:"Public WiFi"},
+  {name:"Borella Junction",            address:"Borella, Colombo 08",          lat:6.9124, lon:79.8763, type:"Public WiFi"},
+  {name:"Pettah Market Area",          address:"Pettah, Colombo 11",           lat:6.9391, lon:79.8554, type:"Public WiFi"},
+  {name:"Wellawatte Junction",         address:"Wellawatte, Colombo 06",       lat:6.8722, lon:79.8591, type:"Public WiFi"},
+  {name:"Kollupitiya Junction",        address:"Kollupitiya, Colombo 03",      lat:6.8977, lon:79.8502, type:"Public WiFi"},
+  {name:"Bambalapitiya Junction",      address:"Bambalapitiya, Colombo 04",    lat:6.8837, lon:79.8559, type:"Public WiFi"},
+  {name:"Kesbewa Town",                address:"Kesbewa",                      lat:6.7979, lon:79.9256, type:"Public WiFi"},
+  {name:"Homagama Town",               address:"Homagama",                     lat:6.8437, lon:79.9915, type:"Public WiFi"}
+];
+
+function loadHotspots(){
+  var hotGroup   = L.layerGroup();
+  var covGroup   = L.layerGroup();
+
+  hotspotData.forEach(function(d){
+    var marker = L.marker([d.lat, d.lon], {icon: iconHot});
+    marker.bindPopup(
+      '<div class="p-title">'+d.name+'</div>'+
+      '<span class="p-badge b-hot">✓ Verified Hotspot</span><br/>'+
+      '<div class="p-row"><strong>Address:</strong> '+d.address+'</div>'+
+      '<div class="p-row"><strong>Type:</strong> '+d.type+'</div>'+
+      '<div class="p-row"><strong>Source:</strong> Manual / OSM</div>',
+      {className:'custom-popup'}
+    );
+    marker.addTo(hotGroup);
+
+    L.circle([d.lat, d.lon],{
+      radius:500, color:'#388bfd', fillColor:'#388bfd',
+      fillOpacity:0.07, weight:1, opacity:0.35
+    }).addTo(covGroup);
+  });
+
+  layers.hotspots = hotGroup; hotGroup.addTo(map);
+  layers.coverage = covGroup; covGroup.addTo(map);
+
+  document.getElementById('cnt-hot').textContent = hotspotData.length;
+  document.getElementById('sub-hot').textContent = hotspotData.length+' known access points';
+}
+
+// ══════════════════════════════════════════
+//  BOUNDARY
+// ══════════════════════════════════════════
+function loadBoundary(){
+  layers.boundary = L.rectangle([[6.78,79.82],[7.00,80.02]],{
+    color:'#f0f6fc', weight:1.5, fillOpacity:0, dashArray:'6 4', opacity:0.25
+  }).addTo(map);
+}
+
+// ══════════════════════════════════════════
+//  GOOGLE SHEET REPORTS
+// ══════════════════════════════════════════
+function loadReports(){
+  Papa.parse(SHEET_CSV,{
+    download:true, header:true,
+    complete:function(res){
+      var data = res.data.filter(function(r){
+        return r['Location Name'] && r['Location Name'].trim()!=='';
+      });
+
+      document.getElementById('cnt-rep').textContent = data.length;
+      document.getElementById('sub-rep').textContent = data.length+' crowd-sourced';
+
+      var repGroup = L.layerGroup();
+      var listEl   = document.getElementById('rep-list');
+      listEl.innerHTML = '';
+
+      if(data.length===0){
+        listEl.innerHTML='<div class="no-rep">No reports yet — be the first!</div>';
+      }
+
+      data.forEach(function(r){
+        var lat = parseFloat(r['Latitude (if you know it)']||r['Latitude']||'');
+        var lon = parseFloat(r['Longitude (if you know it)']||r['Longitude']||'');
+        if(!isNaN(lat)&&!isNaN(lon)&&lat!==0&&lon!==0){
+          var m = L.marker([lat,lon],{icon:iconRep});
+          m.bindPopup(
+            '<div class="p-title">'+(r['Location Name']||'Dead Zone')+'</div>'+
+            '<span class="p-badge b-rep">⚠ Public Report</span><br/>'+
+            '<div class="p-row"><strong>Area:</strong> '+(r['Colombo Area / Division']||'—')+'</div>'+
+            '<div class="p-row"><strong>Issue:</strong> '+(r['Type of Issue']||'—')+'</div>'+
+            '<div class="p-row"><strong>Details:</strong> '+(r['Description of the Problem']||'—')+'</div>'+
+            '<div class="p-row"><strong>By:</strong> '+(r['Your Name (Optional)']||'Anonymous')+'</div>',
+            {className:'custom-popup'}
+          );
+          m.addTo(repGroup);
+        }
+        var card = document.createElement('div');
+        card.className='report-card';
+        var desc = r['Description of the Problem']||'';
+        card.innerHTML=
+          '<div class="rc-loc">📍 '+(r['Location Name']||'—')+'</div>'+
+          '<div class="rc-area">'+(r['Colombo Area / Division']||'—')+'</div>'+
+          '<div class="rc-issue">⚠ '+(r['Type of Issue']||'—')+'</div>'+
+          (desc?'<div class="rc-desc">'+desc.substring(0,80)+'…</div>':'');
+        listEl.appendChild(card);
+      });
+
+      if(layers.reports && map.hasLayer(layers.reports)) map.removeLayer(layers.reports);
+      layers.reports = repGroup;
+      repGroup.addTo(map);
+    },
+    error:function(){
+      document.getElementById('rep-list').innerHTML='<div class="no-rep">Could not load reports.</div>';
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+//  TOGGLE LAYERS
+// ══════════════════════════════════════════
+function toggleLayer(name){
+  var lyr = layers[name];
+  if(!lyr) return;
+  if(map.hasLayer(lyr)){ map.removeLayer(lyr); } else { map.addLayer(lyr); }
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+loadBoundary();
+loadHotspots();
+loadReports();
+
+setTimeout(function(){
+  document.getElementById('loading').classList.add('hidden');
+},2000);
+
+setInterval(loadReports, 60000);
+</script>
+</body>
+</html>
