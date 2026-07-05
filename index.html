@@ -7,12 +7,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Inter',sans-serif;background:#0d1117;color:#e6edf3;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-
-    /* HEADER */
     header{background:linear-gradient(90deg,#0d1117,#161b22);border-bottom:1px solid #21262d;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:1000;}
     .hdr-left{display:flex;align-items:center;gap:12px;}
     .wifi-icon{width:36px;height:36px;background:linear-gradient(135deg,#f97316,#ef4444);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
@@ -22,91 +19,37 @@
     .stat-pill{background:#21262d;border:1px solid #30363d;border-radius:20px;padding:4px 12px;font-size:11px;color:#8b949e;display:flex;align-items:center;gap:6px;}
     .stat-pill span{color:#f0f6fc;font-weight:600;}
     .dot{width:8px;height:8px;border-radius:50%;}
-    .dot-green{background:#3fb950;}
-    .dot-red{background:#f97316;}
-
-    /* LAYOUT */
+    .dot-green{background:#3fb950;}.dot-red{background:#f97316;}
     .main{display:flex;flex:1;overflow:hidden;}
-
-    /* SIDEBAR */
     .sidebar{width:280px;background:#161b22;border-right:1px solid #21262d;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
     .sb-section{padding:14px;border-bottom:1px solid #21262d;}
     .sb-section h3{font-size:10px;font-weight:600;color:#7d8590;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;}
-
-    /* Layer toggles */
     .layer-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;margin-bottom:6px;background:#0d1117;border:1px solid #21262d;}
     .layer-left{display:flex;align-items:center;gap:8px;}
     .layer-color{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
-    .layer-name{font-size:13px;color:#e6edf3;}
-    .layer-sub{font-size:11px;color:#7d8590;}
+    .layer-name{font-size:13px;color:#e6edf3;}.layer-sub{font-size:11px;color:#7d8590;}
     .toggle{position:relative;width:34px;height:19px;flex-shrink:0;}
     .toggle input{opacity:0;width:0;height:0;}
     .slider{position:absolute;inset:0;background:#30363d;border-radius:20px;cursor:pointer;transition:.3s;}
     .slider:before{content:"";position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;}
     input:checked+.slider{background:#388bfd;}
     input:checked+.slider:before{transform:translateX(15px);}
-
-    /* Legend */
     .legend-item{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;color:#8b949e;}
     .l-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
     .l-box{width:16px;height:10px;border-radius:3px;flex-shrink:0;opacity:.6;}
-
-    /* Click to report instruction box */
     .click-box{background:linear-gradient(135deg,#1f2937,#111827);border:1px solid #f97316;border-radius:10px;padding:12px;margin-bottom:10px;}
     .click-box .cb-title{font-size:13px;font-weight:700;color:#f97316;margin-bottom:6px;}
-    .click-box .cb-text{font-size:12px;color:#9ca3af;line-height:1.6;}
-    .click-box .cb-step{display:flex;align-items:flex-start;gap:8px;margin-top:6px;}
+    .cb-step{display:flex;align-items:flex-start;gap:8px;margin-top:6px;}
     .cb-num{background:#f97316;color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
-
-    /* Report cards */
+    .cb-text{font-size:12px;color:#9ca3af;line-height:1.5;}
     .report-card{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;margin-bottom:7px;}
     .rc-loc{font-size:13px;font-weight:600;color:#e6edf3;}
     .rc-area{font-size:11px;color:#388bfd;margin:2px 0;}
     .rc-issue{font-size:11px;font-weight:600;}
-    .rc-issue.bad{color:#f97316;}
-    .rc-issue.good{color:#3fb950;}
+    .rc-issue.bad{color:#f97316;}.rc-issue.good{color:#3fb950;}
     .rc-desc{font-size:11px;color:#7d8590;margin-top:3px;}
     .no-rep{font-size:12px;color:#7d8590;text-align:center;padding:14px 0;}
-
-    /* MAP */
     #map{flex:1;cursor:crosshair;}
-
-    /* REPORT POPUP FORM */
-    .report-form-popup{background:#161b22;border-radius:12px;padding:0;min-width:280px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.6);}
-    .rfp-header{background:linear-gradient(135deg,#f97316,#ef4444);border-radius:12px 12px 0 0;padding:12px 16px;display:flex;align-items:center;gap:8px;}
-    .rfp-header h4{font-size:14px;font-weight:700;color:white;margin:0;}
-    .rfp-body{padding:14px 16px;}
-    .rfp-coords{font-size:11px;color:#7d8590;margin-bottom:12px;background:#0d1117;padding:6px 10px;border-radius:6px;}
-
-    .rfp-label{font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;margin-top:10px;display:block;}
-
-    .rfp-radio-group{display:flex;gap:8px;margin-bottom:4px;}
-    .rfp-radio{flex:1;}
-    .rfp-radio input{display:none;}
-    .rfp-radio label{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;border:1px solid #30363d;background:#0d1117;cursor:pointer;font-size:12px;font-weight:600;color:#8b949e;transition:.2s;width:100%;}
-    .rfp-radio input:checked+label.bad{border-color:#f97316;background:#f9731620;color:#f97316;}
-    .rfp-radio input:checked+label.good{border-color:#3fb950;background:#3fb95020;color:#3fb950;}
-    .rfp-radio label:hover{border-color:#388bfd;}
-
-    .rfp-input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 10px;color:#e6edf3;font-size:12px;font-family:'Inter',sans-serif;outline:none;margin-bottom:4px;}
-    .rfp-input:focus{border-color:#388bfd;}
-    .rfp-select{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 10px;color:#e6edf3;font-size:12px;font-family:'Inter',sans-serif;outline:none;}
-    .rfp-textarea{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 10px;color:#e6edf3;font-size:12px;font-family:'Inter',sans-serif;outline:none;resize:vertical;min-height:60px;}
-    .rfp-textarea:focus,.rfp-select:focus{border-color:#388bfd;}
-
-    .rfp-submit{width:100%;margin-top:12px;padding:10px;background:linear-gradient(135deg,#f97316,#ef4444);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;}
-    .rfp-submit:hover{opacity:.85;}
-    .rfp-submit:disabled{opacity:.5;cursor:not-allowed;}
-    .rfp-cancel{width:100%;margin-top:6px;padding:8px;background:transparent;color:#7d8590;border:1px solid #30363d;border-radius:8px;font-size:12px;cursor:pointer;}
-    .rfp-cancel:hover{border-color:#8b949e;color:#e6edf3;}
-
-    /* Success message */
-    .rfp-success{text-align:center;padding:20px 16px;}
-    .rfp-success .s-icon{font-size:36px;margin-bottom:8px;}
-    .rfp-success h4{color:#3fb950;font-size:14px;margin-bottom:6px;}
-    .rfp-success p{font-size:12px;color:#7d8590;}
-
-    /* Leaflet popup override */
     .leaflet-popup-content-wrapper{background:#161b22!important;border:1px solid #30363d!important;border-radius:12px!important;padding:0!important;box-shadow:0 8px 32px rgba(0,0,0,.6)!important;}
     .leaflet-popup-tip{background:#161b22!important;}
     .leaflet-popup-content{margin:0!important;min-width:280px!important;}
@@ -119,28 +62,39 @@
     .b-bad{background:#f9731630;color:#f97316;}
     .p-row{font-size:12px;color:#8b949e;margin-bottom:3px;}
     .p-row strong{color:#e6edf3;}
-
+    .rfp-header{background:linear-gradient(135deg,#f97316,#ef4444);border-radius:12px 12px 0 0;padding:12px 16px;display:flex;align-items:center;gap:8px;}
+    .rfp-header h4{font-size:14px;font-weight:700;color:white;margin:0;}
+    .rfp-body{padding:14px 16px;}
+    .rfp-coords{font-size:11px;color:#7d8590;margin-bottom:12px;background:#0d1117;padding:6px 10px;border-radius:6px;}
+    .rfp-label{font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;margin-top:10px;display:block;}
+    .rfp-radio-group{display:flex;gap:8px;margin-bottom:4px;}
+    .rfp-radio{flex:1;}
+    .rfp-radio input{display:none;}
+    .rfp-radio label{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;border:1px solid #30363d;background:#0d1117;cursor:pointer;font-size:12px;font-weight:600;color:#8b949e;transition:.2s;width:100%;}
+    .rfp-radio input:checked+label.bad{border-color:#f97316;background:#f9731620;color:#f97316;}
+    .rfp-radio input:checked+label.good{border-color:#3fb950;background:#3fb95020;color:#3fb950;}
+    .rfp-input,.rfp-select,.rfp-textarea{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 10px;color:#e6edf3;font-size:12px;font-family:'Inter',sans-serif;outline:none;margin-bottom:4px;}
+    .rfp-textarea{resize:vertical;min-height:60px;}
+    .rfp-submit{width:100%;margin-top:12px;padding:10px;background:linear-gradient(135deg,#f97316,#ef4444);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+    .rfp-submit:hover{opacity:.85;}
+    .rfp-submit:disabled{opacity:.5;cursor:not-allowed;}
+    .rfp-cancel{width:100%;margin-top:6px;padding:8px;background:transparent;color:#7d8590;border:1px solid #30363d;border-radius:8px;font-size:12px;cursor:pointer;}
+    .rfp-success{text-align:center;padding:20px 16px;}
+    .rfp-success .s-icon{font-size:36px;margin-bottom:8px;}
+    .rfp-success h4{color:#3fb950;font-size:14px;margin-bottom:6px;}
+    .rfp-success p{font-size:12px;color:#7d8590;}
     .leaflet-control-zoom a{background:#161b22!important;color:#e6edf3!important;border-color:#30363d!important;}
     .leaflet-control-attribution{background:rgba(13,17,23,.8)!important;color:#7d8590!important;}
-    .leaflet-control-attribution a{color:#388bfd!important;}
-
-    /* Loading */
     #loading{position:fixed;inset:0;background:#0d1117;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s;}
     #loading.hidden{opacity:0;pointer-events:none;}
     .ring{width:48px;height:48px;border:4px solid #21262d;border-top-color:#f97316;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
     @keyframes spin{to{transform:rotate(360deg);}}
     #loading p{font-size:14px;color:#7d8590;}
-
-    /* Click hint tooltip on map */
     .click-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(249,115,22,0.95);color:white;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:600;z-index:1000;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4);}
   </style>
 </head>
 <body>
-
-<div id="loading">
-  <div class="ring"></div>
-  <p>Loading Wi-Fi Dead Zone Map…</p>
-</div>
+<div id="loading"><div class="ring"></div><p>Loading Wi-Fi Dead Zone Map…</p></div>
 
 <header>
   <div class="hdr-left">
@@ -152,110 +106,78 @@
   </div>
   <div class="hdr-stats">
     <div class="stat-pill"><div class="dot dot-green"></div>Hotspots: <span id="cnt-hot">–</span></div>
-    <div class="stat-pill"><div class="dot dot-red"></div>Reports: <span id="cnt-rep">–</span></div>
+    <div class="stat-pill"><div class="dot dot-red"></div>Reports: <span id="cnt-rep">0</span></div>
   </div>
 </header>
 
 <div class="main">
   <div class="sidebar">
-
-    <!-- How to report -->
     <div class="sb-section">
       <h3>How to Report</h3>
       <div class="click-box">
         <div class="cb-title">📍 Click the Map to Report</div>
-        <div class="cb-step"><div class="cb-num">1</div><div class="cb-text">Click any location on the map where Wi-Fi is good or bad</div></div>
-        <div class="cb-step"><div class="cb-num">2</div><div class="cb-text">A form will pop up — fill in the details</div></div>
-        <div class="cb-step"><div class="cb-num">3</div><div class="cb-text">Click Submit — your report appears on the map!</div></div>
+        <div class="cb-step"><div class="cb-num">1</div><div class="cb-text">Click any location on the map</div></div>
+        <div class="cb-step"><div class="cb-num">2</div><div class="cb-text">Select Good or Bad WiFi and fill details</div></div>
+        <div class="cb-step"><div class="cb-num">3</div><div class="cb-text">Submit — your pin appears on the map!</div></div>
       </div>
     </div>
-
-    <!-- Layers -->
     <div class="sb-section">
       <h3>Map Layers</h3>
       <div class="layer-item">
-        <div class="layer-left">
-          <div class="layer-color" style="background:#3fb950"></div>
-          <div><div class="layer-name">Wi-Fi Hotspots</div><div class="layer-sub" id="sub-hot">Known access points</div></div>
-        </div>
+        <div class="layer-left"><div class="layer-color" style="background:#3fb950"></div><div><div class="layer-name">Wi-Fi Hotspots</div><div class="layer-sub" id="sub-hot">Verified spots</div></div></div>
         <label class="toggle"><input type="checkbox" checked onchange="toggleLayer('hotspots')"><span class="slider"></span></label>
       </div>
       <div class="layer-item">
-        <div class="layer-left">
-          <div class="layer-color" style="background:#388bfd;opacity:.6"></div>
-          <div><div class="layer-name">Coverage Zones</div><div class="layer-sub">500m buffer</div></div>
-        </div>
+        <div class="layer-left"><div class="layer-color" style="background:#388bfd;opacity:.6"></div><div><div class="layer-name">Coverage Zones</div><div class="layer-sub">500m buffer</div></div></div>
         <label class="toggle"><input type="checkbox" checked onchange="toggleLayer('coverage')"><span class="slider"></span></label>
       </div>
       <div class="layer-item">
-        <div class="layer-left">
-          <div class="layer-color" style="background:#f97316"></div>
-          <div><div class="layer-name">Dead Zone Reports</div><div class="layer-sub" id="sub-rep">Public reports</div></div>
-        </div>
+        <div class="layer-left"><div class="layer-color" style="background:#f97316"></div><div><div class="layer-name">Dead Zone Reports</div><div class="layer-sub">Bad WiFi reports</div></div></div>
         <label class="toggle"><input type="checkbox" checked onchange="toggleLayer('reports')"><span class="slider"></span></label>
       </div>
       <div class="layer-item">
-        <div class="layer-left">
-          <div class="layer-color" style="background:#3fb950;opacity:.5"></div>
-          <div><div class="layer-name">Good Coverage Reports</div><div class="layer-sub">Public good reports</div></div>
-        </div>
+        <div class="layer-left"><div class="layer-color" style="background:#22c55e"></div><div><div class="layer-name">Good Coverage Reports</div><div class="layer-sub">Good WiFi reports</div></div></div>
         <label class="toggle"><input type="checkbox" checked onchange="toggleLayer('goodreports')"><span class="slider"></span></label>
       </div>
     </div>
-
-    <!-- Legend -->
     <div class="sb-section">
       <h3>Legend</h3>
-      <div class="legend-item"><div class="l-dot" style="background:#3fb950"></div> Verified Wi-Fi Hotspot</div>
-      <div class="legend-item"><div class="l-dot" style="background:#f97316"></div> Reported Dead Zone (Bad)</div>
-      <div class="legend-item"><div class="l-dot" style="background:#22c55e"></div> Reported Good Coverage</div>
-      <div class="legend-item"><div class="l-box" style="background:#388bfd"></div> Coverage Area (500m)</div>
+      <div class="legend-item"><div class="l-dot" style="background:#3fb950"></div>Verified Wi-Fi Hotspot</div>
+      <div class="legend-item"><div class="l-dot" style="background:#f97316"></div>Reported Dead Zone (Bad WiFi)</div>
+      <div class="legend-item"><div class="l-dot" style="background:#22c55e"></div>Reported Good Coverage</div>
+      <div class="legend-item"><div class="l-box" style="background:#388bfd"></div>Coverage Area (500m radius)</div>
     </div>
-
-    <!-- Live reports list -->
     <div class="sb-section" style="flex:1;">
       <h3>Latest Public Reports</h3>
-      <div id="rep-list"><div class="no-rep">Loading reports…</div></div>
+      <div id="rep-list"><div class="no-rep">No reports yet — click the map to be first!</div></div>
     </div>
-
   </div>
-
   <div id="map"></div>
 </div>
 
-<!-- Click hint -->
 <div class="click-hint" id="click-hint">👆 Click anywhere on the map to report Wi-Fi coverage</div>
 
 <script>
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 // CONFIG
-// ══════════════════════════════════════════
-// IMPORTANT: Replace with your Google Apps Script Web App URL (see instructions below)
+// ══════════════════════════════════════
 var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhrP2pZyQ-flZGxkGNvLROxBkfi9xarsHmP8tkEpjh2Smq1ivziwYz2PMLqdPxSPpk/exec";
 
-// Your Google Sheet CSV for reading reports
-var SHEET_CSV = "https://corsproxy.io/?url=" + encodeURIComponent("https://docs.google.com/spreadsheets/d/e/2PACX-1vRQrX1AOJNnbq1nMGd9y8XQFyW7vC-BQoBPv0DrPne3SJKl6xxDHfvJ0_sx1zqJbA5C4xfrETasdWlu/pub?gid=2107756450&single=true&output=csv");
-
-// ══════════════════════════════════════════
-// MAP SETUP
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
+// MAP
+// ══════════════════════════════════════
 var map = L.map('map',{center:[6.9271,79.8612],zoom:12});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
   attribution:'&copy; OpenStreetMap &copy; CARTO',subdomains:'abcd',maxZoom:19
 }).addTo(map);
 
 var layers={hotspots:null,coverage:null,reports:null,goodreports:null};
-var currentPopup=null;
 
-// Hide hint after 5 seconds
-setTimeout(function(){
-  var h=document.getElementById('click-hint');
-  if(h)h.style.display='none';
-},5000);
+setTimeout(function(){var h=document.getElementById('click-hint');if(h)h.style.display='none';},5000);
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 // ICONS
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 function makeIcon(color,emoji){
   return L.divIcon({
     html:'<div style="background:'+color+';width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)"><span style="transform:rotate(45deg);font-size:14px">'+emoji+'</span></div>',
@@ -266,9 +188,9 @@ var iconHot  = makeIcon('#3fb950','📶');
 var iconBad  = makeIcon('#f97316','⚠️');
 var iconGood = makeIcon('#22c55e','✅');
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 // HOTSPOT DATA
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 var hotspotData=[
   {name:"University of Moratuwa",address:"Katubedda, Moratuwa",lat:6.7953,lon:79.9009,type:"University WiFi"},
   {name:"SLIIT Malabe Campus",address:"New Kandy Rd, Malabe",lat:6.9147,lon:79.9729,type:"University WiFi"},
@@ -303,7 +225,7 @@ var hotspotData=[
 ];
 
 function loadHotspots(){
-  var hg=L.layerGroup(), cg=L.layerGroup();
+  var hg=L.layerGroup(),cg=L.layerGroup();
   hotspotData.forEach(function(d){
     L.marker([d.lat,d.lon],{icon:iconHot})
      .bindPopup('<div class="p-title">'+d.name+'</div><span class="p-badge b-hot">✓ Verified Hotspot</span><br/><div class="p-row"><strong>Address:</strong> '+d.address+'</div><div class="p-row"><strong>Type:</strong> '+d.type+'</div>',{className:'custom-popup'})
@@ -316,111 +238,136 @@ function loadHotspots(){
   document.getElementById('sub-hot').textContent=hotspotData.length+' verified spots';
 }
 
-// ══════════════════════════════════════════
-// BOUNDARY
-// ══════════════════════════════════════════
-L.rectangle([[6.78,79.82],[7.00,80.02]],{
-  color:'#f0f6fc',weight:1.5,fillOpacity:0,dashArray:'6 4',opacity:0.2
-}).addTo(map);
+L.rectangle([[6.78,79.82],[7.00,80.02]],{color:'#f0f6fc',weight:1.5,fillOpacity:0,dashArray:'6 4',opacity:0.2}).addTo(map);
 
-// ══════════════════════════════════════════
-// LOAD REPORTS FROM GOOGLE SHEET
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
+// LOAD REPORTS — reads directly from Apps Script GET
+// ══════════════════════════════════════
 function loadReports(){
-  Papa.parse(SHEET_CSV,{
-    download:true,header:true,
-    complete:function(res){
-      var data=res.data.filter(function(r){return r['Location Name']&&r['Location Name'].trim()!=='';});
-      document.getElementById('cnt-rep').textContent=data.length;
-      document.getElementById('sub-rep').textContent=data.length+' public reports';
-
-      if(layers.reports&&map.hasLayer(layers.reports))map.removeLayer(layers.reports);
-      if(layers.goodreports&&map.hasLayer(layers.goodreports))map.removeLayer(layers.goodreports);
-
-      var bg=L.layerGroup(), gg=L.layerGroup();
-      var listEl=document.getElementById('rep-list');
-      listEl.innerHTML='';
-
-      if(data.length===0){
-        listEl.innerHTML='<div class="no-rep">No reports yet — click the map to be the first!</div>';
-      }
-
-      data.forEach(function(r){
-        var lat=parseFloat(r['Latitude (if you know it)']||r['Latitude']||'');
-        var lon=parseFloat(r['Longitude (if you know it)']||r['Longitude']||'');
-        var isBad=(r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('bad')>-1||
-                  (r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('dead')>-1||
-                  (r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('no wifi')>-1||
-                  (r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('weak')>-1;
-
-        if(!isNaN(lat)&&!isNaN(lon)&&lat!==0&&lon!==0){
-          var icon=isBad?iconBad:iconGood;
-          var m=L.marker([lat,lon],{icon:icon});
-          m.bindPopup(
-            '<div class="p-title">'+(r['Location Name']||'Report')+'</div>'+
-            '<span class="p-badge '+(isBad?'b-bad':'b-good')+'">'+(isBad?'⚠ Dead Zone':'✅ Good Coverage')+'</span><br/>'+
-            '<div class="p-row"><strong>Area:</strong> '+(r['Area']||r['Colombo Area / Division']||'—')+'</div>'+
-            '<div class="p-row"><strong>Status:</strong> '+(r['WiFi Status']||r['Type of Issue']||'—')+'</div>'+
-            '<div class="p-row"><strong>Details:</strong> '+(r['Description']||r['Description of the Problem']||'—')+'</div>'+
-            '<div class="p-row"><strong>By:</strong> '+(r['Name']||r['Your Name (Optional)']||'Anonymous')+'</div>',
-            {className:'custom-popup'}
-          );
-          if(isBad)m.addTo(bg); else m.addTo(gg);
-        }
-
-        var card=document.createElement('div');
-        card.className='report-card';
-        card.innerHTML=
-          '<div class="rc-loc">📍 '+(r['Location Name']||'—')+'</div>'+
-          '<div class="rc-area">'+(r['Area']||r['Colombo Area / Division']||'—')+'</div>'+
-          '<div class="rc-issue '+(isBad?'bad':'good')+'">'+(isBad?'⚠ Dead Zone / Bad WiFi':'✅ Good Coverage')+'</div>'+
-          (r['Description']?'<div class="rc-desc">'+(r['Description']||r['Description of the Problem']||'').substring(0,70)+'</div>':'');
-        listEl.appendChild(card);
-      });
-
-      layers.reports=bg; bg.addTo(map);
-      layers.goodreports=gg; gg.addTo(map);
-    },
-    error:function(){
-      document.getElementById('rep-list').innerHTML='<div class="no-rep">Could not load reports.</div>';
-    }
+  fetch(APPS_SCRIPT_URL + "?action=get")
+  .then(function(r){return r.json();})
+  .then(function(data){
+    renderReports(data);
+  })
+  .catch(function(){
+    // fallback — try reading from published sheet directly
+    fetchFromSheet();
   });
 }
 
-// ══════════════════════════════════════════
-// MAP CLICK → SHOW REPORT FORM POPUP
-// ══════════════════════════════════════════
+function fetchFromSheet(){
+  // Direct fetch without proxy as fallback
+  var url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRQrX1AOJNnbq1nMGd9y8XQFyW7vC-BQoBPv0DrPne3SJKl6xxDHfvJ0_sx1zqJbA5C4xfrETasdWlu/pub?gid=2107756450&single=true&output=csv";
+  fetch("https://corsproxy.io/?url="+encodeURIComponent(url))
+  .then(function(r){return r.text();})
+  .then(function(csv){
+    var rows = parseCSV(csv);
+    renderReports(rows);
+  })
+  .catch(function(){
+    document.getElementById('rep-list').innerHTML='<div class="no-rep">Could not load reports.</div>';
+  });
+}
+
+function parseCSV(text){
+  var lines = text.split('\n');
+  if(lines.length < 2) return [];
+  var headers = lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  var rows = [];
+  for(var i=1;i<lines.length;i++){
+    if(!lines[i].trim()) continue;
+    var vals = lines[i].split(',').map(function(v){return v.trim().replace(/^"|"$/g,'');});
+    var obj = {};
+    headers.forEach(function(h,idx){obj[h]=vals[idx]||'';});
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function renderReports(data){
+  if(!data||!data.length){
+    document.getElementById('rep-list').innerHTML='<div class="no-rep">No reports yet — click the map to be first!</div>';
+    document.getElementById('cnt-rep').textContent='0';
+    return;
+  }
+
+  // filter valid rows
+  var valid = data.filter(function(r){
+    return r['Location Name']&&r['Location Name'].trim()!=='';
+  });
+
+  document.getElementById('cnt-rep').textContent=valid.length;
+
+  if(layers.reports&&map.hasLayer(layers.reports))map.removeLayer(layers.reports);
+  if(layers.goodreports&&map.hasLayer(layers.goodreports))map.removeLayer(layers.goodreports);
+
+  var bg=L.layerGroup(),gg=L.layerGroup();
+  var listEl=document.getElementById('rep-list');
+  listEl.innerHTML='';
+
+  valid.forEach(function(r){
+    // Try every possible column name for lat/lon
+    var latVal = r['Latitude']||r['latitude']||r['Latitude (if you know it)']||r['lat']||'';
+    var lonVal = r['Longitude']||r['longitude']||r['Longitude (if you know it)']||r['lon']||r['lng']||'';
+    var lat = parseFloat(latVal);
+    var lon = parseFloat(lonVal);
+
+    var statusVal = (r['WiFi Status']||r['Type of Issue']||r['status']||'').toLowerCase();
+    var isBad = statusVal.indexOf('bad')>-1||statusVal.indexOf('dead')>-1||
+                statusVal.indexOf('no wifi')>-1||statusVal.indexOf('weak')>-1||
+                statusVal.indexOf('no')>-1;
+
+    // Add pin to map if coordinates exist and are valid
+    if(!isNaN(lat)&&!isNaN(lon)&&lat!==0&&lon!==0&&lat>6&&lat<7.5&&lon>79&&lon<81){
+      var icon=isBad?iconBad:iconGood;
+      var m=L.marker([lat,lon],{icon:icon});
+      m.bindPopup(
+        '<div class="p-title">'+(r['Location Name']||'Report')+'</div>'+
+        '<span class="p-badge '+(isBad?'b-bad':'b-good')+'">'+(isBad?'⚠ Dead Zone':'✅ Good Coverage')+'</span><br/>'+
+        '<div class="p-row"><strong>Area:</strong> '+(r['Area']||r['Colombo Area / Division']||'—')+'</div>'+
+        '<div class="p-row"><strong>Status:</strong> '+(r['WiFi Status']||r['Type of Issue']||'—')+'</div>'+
+        '<div class="p-row"><strong>Details:</strong> '+(r['Description']||r['Description of the Problem']||'—')+'</div>'+
+        '<div class="p-row"><strong>By:</strong> '+(r['Name']||r['Your Name (Optional)']||'Anonymous')+'</div>',
+        {className:'custom-popup'}
+      );
+      if(isBad) m.addTo(bg); else m.addTo(gg);
+    }
+
+    // Always add card to sidebar
+    var card=document.createElement('div');
+    card.className='report-card';
+    var desc=r['Description']||r['Description of the Problem']||'';
+    card.innerHTML=
+      '<div class="rc-loc">📍 '+(r['Location Name']||'—')+'</div>'+
+      '<div class="rc-area">'+(r['Area']||r['Colombo Area / Division']||'—')+'</div>'+
+      '<div class="rc-issue '+(isBad?'bad':'good')+'">'+(isBad?'⚠ Dead Zone / Bad WiFi':'✅ Good Coverage')+'</div>'+
+      (desc?'<div class="rc-desc">'+desc.substring(0,80)+'</div>':'');
+    listEl.appendChild(card);
+  });
+
+  layers.reports=bg; bg.addTo(map);
+  layers.goodreports=gg; gg.addTo(map);
+}
+
+// ══════════════════════════════════════
+// MAP CLICK FORM
+// ══════════════════════════════════════
 map.on('click',function(e){
   var lat=e.latlng.lat.toFixed(6);
   var lng=e.latlng.lng.toFixed(6);
 
-  // Don't open if clicking on existing marker
-  if(currentPopup)map.closePopup(currentPopup);
-
   var formHtml=
-    '<div class="report-form-popup">'+
-      '<div class="rfp-header">'+
-        '<span style="font-size:18px">📍</span>'+
-        '<h4>Report Wi-Fi Coverage Here</h4>'+
-      '</div>'+
+    '<div>'+
+      '<div class="rfp-header"><span style="font-size:18px">📍</span><h4>Report Wi-Fi Coverage Here</h4></div>'+
       '<div class="rfp-body">'+
-        '<div class="rfp-coords">📌 Location: '+lat+', '+lng+'<br/><span style="font-size:10px;color:#555">(Coordinates captured automatically)</span></div>'+
-
-        '<span class="rfp-label">Wi-Fi Status at this location *</span>'+
+        '<div class="rfp-coords">📌 Coordinates: '+lat+', '+lng+'<br/><span style="font-size:10px;color:#555">(Auto-captured from your click)</span></div>'+
+        '<span class="rfp-label">Wi-Fi Status *</span>'+
         '<div class="rfp-radio-group">'+
-          '<div class="rfp-radio">'+
-            '<input type="radio" name="wifistatus" id="bad" value="No WiFi / Dead Zone">'+
-            '<label for="bad" class="bad">⚠️ Bad / No WiFi</label>'+
-          '</div>'+
-          '<div class="rfp-radio">'+
-            '<input type="radio" name="wifistatus" id="good" value="Good WiFi Coverage">'+
-            '<label for="good" class="good">✅ Good WiFi</label>'+
-          '</div>'+
+          '<div class="rfp-radio"><input type="radio" name="ws_'+lat+'" id="bad_'+lat+'" value="No WiFi / Dead Zone"><label for="bad_'+lat+'" class="bad">⚠️ Bad / No WiFi</label></div>'+
+          '<div class="rfp-radio"><input type="radio" name="ws_'+lat+'" id="good_'+lat+'" value="Good WiFi Coverage"><label for="good_'+lat+'" class="good">✅ Good WiFi</label></div>'+
         '</div>'+
-
         '<span class="rfp-label">Location Name *</span>'+
-        '<input class="rfp-input" id="rf-locname" type="text" placeholder="e.g. Nugegoda Junction, near bus stand"/>'+
-
+        '<input class="rfp-input" id="rf-loc" placeholder="e.g. Nugegoda Junction"/>'+
         '<span class="rfp-label">Colombo Area</span>'+
         '<select class="rfp-select" id="rf-area">'+
           '<option value="">Select area...</option>'+
@@ -435,98 +382,95 @@ map.on('click',function(e){
           '<option>Battaramulla</option><option>Rajagiriya</option><option>Homagama</option>'+
           '<option>Other</option>'+
         '</select>'+
-
         '<span class="rfp-label">Description (optional)</span>'+
-        '<textarea class="rfp-textarea" id="rf-desc" placeholder="Describe the WiFi situation here..."></textarea>'+
-
+        '<textarea class="rfp-textarea" id="rf-desc" placeholder="Describe the WiFi situation..."></textarea>'+
         '<span class="rfp-label">Your Name (optional)</span>'+
-        '<input class="rfp-input" id="rf-name" type="text" placeholder="Anonymous if left blank"/>'+
-
-        '<button class="rfp-submit" id="rf-submit" onclick="submitReport(\''+lat+'\',\''+lng+'\')">📤 Submit Report</button>'+
+        '<input class="rfp-input" id="rf-name" placeholder="Anonymous if blank"/>'+
+        '<button class="rfp-submit" id="rf-btn" onclick="submitReport(\''+lat+'\',\''+lng+'\')">📤 Submit Report</button>'+
         '<button class="rfp-cancel" onclick="map.closePopup()">Cancel</button>'+
       '</div>'+
     '</div>';
 
-  currentPopup=L.popup({maxWidth:340,className:'',closeButton:true})
-    .setLatLng(e.latlng)
-    .setContent(formHtml)
-    .openOn(map);
+  L.popup({maxWidth:340,closeButton:true}).setLatLng(e.latlng).setContent(formHtml).openOn(map);
 });
 
-// ══════════════════════════════════════════
-// SUBMIT REPORT
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════
 function submitReport(lat,lng){
-  var status  = document.querySelector('input[name="wifistatus"]:checked');
-  var locname = document.getElementById('rf-locname').value.trim();
-  var area    = document.getElementById('rf-area').value;
-  var desc    = document.getElementById('rf-desc').value.trim();
-  var name    = document.getElementById('rf-name').value.trim()||'Anonymous';
+  var status=document.querySelector('input[name="ws_'+lat+'"]:checked');
+  var loc=document.getElementById('rf-loc').value.trim();
+  var area=document.getElementById('rf-area').value;
+  var desc=document.getElementById('rf-desc').value.trim();
+  var name=document.getElementById('rf-name').value.trim()||'Anonymous';
 
-  if(!status){alert('Please select Wi-Fi status (Bad or Good)');return;}
-  if(!locname){alert('Please enter a location name');return;}
+  if(!status){alert('Please select Bad or Good WiFi');return;}
+  if(!loc){alert('Please enter a location name');return;}
 
-  var btn=document.getElementById('rf-submit');
-  btn.disabled=true;
-  btn.textContent='Submitting…';
+  var btn=document.getElementById('rf-btn');
+  btn.disabled=true; btn.textContent='Submitting…';
 
-  var data={
-    'Location Name': locname,
-    'Area': area,
-    'WiFi Status': status.value,
-    'Description': desc,
-    'Name': name,
-    'Latitude': lat,
-    'Longitude': lng,
-    'Timestamp': new Date().toISOString()
+  var payload={
+    'Location Name':loc,
+    'Area':area,
+    'WiFi Status':status.value,
+    'Description':desc,
+    'Name':name,
+    'Latitude':lat,
+    'Longitude':lng,
+    'Timestamp':new Date().toISOString()
   };
 
-  // Submit to Google Apps Script
   fetch(APPS_SCRIPT_URL,{
     method:'POST',
     mode:'no-cors',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(data)
+    body:JSON.stringify(payload)
   }).then(function(){
     showSuccess();
-    setTimeout(function(){
-      map.closePopup();
-      loadReports();
-    },2500);
-  }).catch(function(){
-    showSuccess(); // show success anyway — no-cors doesn't return error info
-    setTimeout(function(){
-      map.closePopup();
-      loadReports();
-    },2500);
+    // Add pin immediately without waiting for sheet refresh
+    var isBad=status.value.toLowerCase().indexOf('no')>-1||status.value.toLowerCase().indexOf('bad')>-1;
+    var icon=isBad?iconBad:iconGood;
+    var m=L.marker([parseFloat(lat),parseFloat(lng)],{icon:icon});
+    m.bindPopup(
+      '<div class="p-title">'+loc+'</div>'+
+      '<span class="p-badge '+(isBad?'b-bad':'b-good')+'">'+(isBad?'⚠ Dead Zone':'✅ Good Coverage')+'</span><br/>'+
+      '<div class="p-row"><strong>Area:</strong> '+area+'</div>'+
+      '<div class="p-row"><strong>Status:</strong> '+status.value+'</div>'+
+      '<div class="p-row"><strong>By:</strong> '+name+'</div>',
+      {className:'custom-popup'}
+    );
+    if(isBad){
+      if(!layers.reports)layers.reports=L.layerGroup().addTo(map);
+      m.addTo(layers.reports);
+    } else {
+      if(!layers.goodreports)layers.goodreports=L.layerGroup().addTo(map);
+      m.addTo(layers.goodreports);
+    }
+    // Update sidebar count
+    var cur=parseInt(document.getElementById('cnt-rep').textContent)||0;
+    document.getElementById('cnt-rep').textContent=cur+1;
+    setTimeout(function(){map.closePopup(); loadReports();},2500);
+  }).catch(function(err){
+    showSuccess();
+    setTimeout(function(){map.closePopup(); loadReports();},2500);
   });
 }
 
 function showSuccess(){
   var body=document.querySelector('.rfp-body');
-  if(body){
-    body.innerHTML=
-      '<div class="rfp-success">'+
-        '<div class="s-icon">🎉</div>'+
-        '<h4>Report Submitted!</h4>'+
-        '<p>Thank you! Your report has been saved and will appear on the map shortly.</p>'+
-      '</div>';
-  }
+  if(body) body.innerHTML='<div class="rfp-success"><div class="s-icon">🎉</div><h4>Report Submitted!</h4><p>Your pin has been added to the map. Thank you for contributing!</p></div>';
 }
 
-// ══════════════════════════════════════════
-// TOGGLE LAYERS
-// ══════════════════════════════════════════
 function toggleLayer(name){
   var lyr=layers[name];
   if(!lyr)return;
-  if(map.hasLayer(lyr))map.removeLayer(lyr);
-  else map.addLayer(lyr);
+  if(map.hasLayer(lyr))map.removeLayer(lyr); else map.addLayer(lyr);
 }
 
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 // INIT
-// ══════════════════════════════════════════
+// ══════════════════════════════════════
 loadHotspots();
 loadReports();
 setTimeout(function(){document.getElementById('loading').classList.add('hidden');},2000);
