@@ -346,8 +346,8 @@ function loadReports(){
       }
 
       data.forEach(function(r){
-        var lat=parseFloat(r['Latitude']||'');
-        var lon=parseFloat(r['Longitude']||'');
+        var lat=parseFloat(r['Latitude (if you know it)']||r['Latitude']||'');
+        var lon=parseFloat(r['Longitude (if you know it)']||r['Longitude']||'');
         var isBad=(r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('bad')>-1||
                   (r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('dead')>-1||
                   (r['WiFi Status']||r['Type of Issue']||'').toLowerCase().indexOf('no wifi')>-1||
